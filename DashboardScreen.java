@@ -8,12 +8,12 @@ import java.awt.event.MouseEvent;
 
 public class DashboardScreen extends JPanel {
     private final AppContext ctx;
-    private final JLabel kpiTotalLbl, kpiEligLbl, kpiNotEligLbl, kpiCheckLbl, kpiDatesLbl;
-    private final JComboBox<String> sheetSelectorCombo;
-    private final JTextField dashSearchField;
+    private JLabel kpiTotalLbl, kpiEligLbl, kpiNotEligLbl, kpiCheckLbl, kpiDatesLbl;
+    private JComboBox<String> sheetSelectorCombo;
+    private JTextField dashSearchField;
     private String activeStatusFilter = "ALL";
-    private final JTable masterTable;
-    private final DefaultTableModel masterTableModel;
+    private JTable masterTable;
+    private DefaultTableModel masterTableModel;
 
     public DashboardScreen(final AppContext ctx) {
         this.ctx = ctx;
@@ -32,6 +32,17 @@ public class DashboardScreen extends JPanel {
         FlutterUI.RoundedCard tableCard = new FlutterUI.RoundedCard(Color.WHITE);
         tableCard.setLayout(new BorderLayout(8, 10));
         tableCard.setBorder(new EmptyBorder(14, 16, 14, 16));
+
+        // Initialize Table Model and Table first
+        String[] cols = {
+            "SL", "12-Digit CIF", "Farmer Name", "SB Account (Today)",
+            "Kharif Kind", "Kharif Cash", "Rabi Kind", "Rabi Cash",
+            "Status", "Exact Audit Reason", "CBS Override"
+        };
+        masterTableModel = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return c == 10; }
+        };
+        masterTable = FlutterUI.createStyledTable(masterTableModel, 8);
 
         JPanel filterBar = new JPanel(new BorderLayout(10, 0));
         filterBar.setOpaque(false);
@@ -72,16 +83,6 @@ public class DashboardScreen extends JPanel {
         searchPanel.add(searchBtns, BorderLayout.EAST);
         filterBar.add(searchPanel, BorderLayout.CENTER);
         tableCard.add(filterBar, BorderLayout.NORTH);
-
-        String[] cols = {
-            "SL", "12-Digit CIF", "Farmer Name", "SB Account (Today)",
-            "Kharif Kind", "Kharif Cash", "Rabi Kind", "Rabi Cash",
-            "Status", "Exact Audit Reason", "CBS Override"
-        };
-        masterTableModel = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return c == 10; }
-        };
-        masterTable = FlutterUI.createStyledTable(masterTableModel, 8);
 
         TableColumnModel cm = masterTable.getColumnModel();
         cm.getColumn(0).setMaxWidth(48);
