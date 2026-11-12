@@ -19,26 +19,36 @@ public class ExcelExporter {
             pw.println(" <Style ss:ID=\"RowOdd\"><Font ss:FontName=\"Segoe UI\" ss:Size=\"10\" ss:Color=\"#0F172A\"/><Interior ss:Color=\"#F1F5F9\" ss:Pattern=\"Solid\"/><NumberFormat ss:Format=\"@\"/></Style>");
             pw.println("</Styles>");
 
-            // 1. ALL Sheet
+            // 1. ALL Sheet — Every Account No, 01/04 Balance, Cleared Date & Today Balance in SEPARATE CELLS
             pw.println("<Worksheet ss:Name=\"ALL\"><Table>");
             writeExcelRow(pw, "Header", new String[]{
-                "SLNO", "12-DIGIT CIF", "FARMER NAME", "SB ACCOUNT (TODAY)",
-                "KHARIF KIND", "KHARIF CASH", "RABI KIND", "RABI CASH", "OTHER / OD / CC",
+                "SLNO", "12-DIGIT CIF", "FARMER NAME",
+                "SB A/C NO", "SB TODAY BAL",
+                "KHARIF KIND A/C NO", "KHARIF KIND 01/04 BAL", "KHARIF KIND CLEARED DATE", "KHARIF KIND TODAY BAL",
+                "KHARIF CASH A/C NO", "KHARIF CASH 01/04 BAL", "KHARIF CASH CLEARED DATE", "KHARIF CASH TODAY BAL",
+                "RABI KIND A/C NO", "RABI KIND 01/04 BAL", "RABI KIND CLEARED DATE", "RABI KIND TODAY BAL",
+                "RABI CASH A/C NO", "RABI CASH 01/04 BAL", "RABI CASH CLEARED DATE", "RABI CASH TODAY BAL",
+                "OTHER / OD A/C NO", "OTHER / OD TODAY BAL",
                 "ELIGIBILITY STATUS", "EXACT AUDIT REASON", "MANUAL CBS OVERRIDE"
             });
+
             int idx = 1;
             for (CIFMasterRecord c : cifMasterList) {
                 String st = (idx % 2 == 0) ? "RowEven" : "RowOdd";
                 writeExcelRow(pw, st, new String[]{
-                    String.valueOf(idx++), c.cif, c.name, SamayojanModels.formatShortSummary(c.sb),
-                    SamayojanModels.formatShortSummary(c.kharifKind), SamayojanModels.formatShortSummary(c.kharifCash),
-                    SamayojanModels.formatShortSummary(c.rabiKind), SamayojanModels.formatShortSummary(c.rabiCash),
-                    SamayojanModels.formatShortSummary(c.other), c.finalStatus, c.finalReason, c.override
+                    String.valueOf(idx++), c.cif, c.name,
+                    SamayojanModels.joinAccountsOnly(c.sb), SamayojanModels.joinTodayBalancesOnly(c.sb),
+                    SamayojanModels.joinAccountsOnly(c.kharifKind), SamayojanModels.joinAprBalancesOnly(c.kharifKind), SamayojanModels.joinClearedDatesOnly(c.kharifKind), SamayojanModels.joinTodayBalancesOnly(c.kharifKind),
+                    SamayojanModels.joinAccountsOnly(c.kharifCash), SamayojanModels.joinAprBalancesOnly(c.kharifCash), SamayojanModels.joinClearedDatesOnly(c.kharifCash), SamayojanModels.joinTodayBalancesOnly(c.kharifCash),
+                    SamayojanModels.joinAccountsOnly(c.rabiKind), SamayojanModels.joinAprBalancesOnly(c.rabiKind), SamayojanModels.joinClearedDatesOnly(c.rabiKind), SamayojanModels.joinTodayBalancesOnly(c.rabiKind),
+                    SamayojanModels.joinAccountsOnly(c.rabiCash), SamayojanModels.joinAprBalancesOnly(c.rabiCash), SamayojanModels.joinClearedDatesOnly(c.rabiCash), SamayojanModels.joinTodayBalancesOnly(c.rabiCash),
+                    SamayojanModels.joinAccountsOnly(c.other), SamayojanModels.joinTodayBalancesOnly(c.other),
+                    c.finalStatus, c.finalReason, c.override
                 });
             }
             pw.println("</Table></Worksheet>");
 
-            // 2-6. Dedicated Scheme Sheets
+            // 2-6. Dedicated Scheme Sheets — Separate DR and CR Balance Cells
             writeSchemeSheet(pw, cifMasterList, "SB", 1);
             writeSchemeSheet(pw, cifMasterList, "KHARIF KIND", 2);
             writeSchemeSheet(pw, cifMasterList, "KHARIF CASH", 3);
@@ -53,7 +63,8 @@ public class ExcelExporter {
         pw.println("<Worksheet ss:Name=\"" + sheetName + "\"><Table>");
         writeExcelRow(pw, "Header", new String[]{
             "SLNO", "12-DIGIT CIF", "ACCOUNT NUMBER", "FARMER NAME",
-            "01/04/2026 BAL / FIRST SEEN", "INTERMEDIATE CLEARED DATE", "TODAY BALANCE",
+            "01/04/2026 DR BAL", "01/04/2026 CR BAL", "FIRST SEEN DATE",
+            "INTERMEDIATE CLEARED DATE", "TODAY DR BAL", "TODAY CR BAL",
             "ELIGIBILITY STATUS", "EXACT AUDIT REASON", "MANUAL CBS OVERRIDE"
         });
         int r = 1;
@@ -61,11 +72,15 @@ public class ExcelExporter {
             List<EnrichedAccount> list = type == 1 ? c.sb : (type == 2 ? c.kharifKind : (type == 3 ? c.kharifCash : (type == 4 ? c.rabiKind : c.rabiCash)));
             for (EnrichedAccount a : list) {
                 String st = (r % 2 == 0) ? "RowEven" : "RowOdd";
-                String aprCol = a.existedOnApr1 ? SamayojanModels.AMT_FMT.format(a.balApr1) : ("New (" + SamayojanModels.formatDate(a.firstSeenDate) + ")");
                 writeExcelRow(pw, st, new String[]{
                     String.valueOf(r++), c.cif, a.account, c.name,
-                    aprCol, a.clearedDate != null ? SamayojanModels.formatDate(a.clearedDate) : "-",
-                    SamayojanModels.AMT_FMT.format(a.balToday), c.finalStatus, c.finalReason, c.override
+                    SamayojanModels.AMT_FMT.format(a.drApr1),
+                    SamayojanModels.AMT_FMT.format(a.crApr1),
+                    SamayojanModels.formatDate(a.firstSeenDate),
+                    a.clearedDate != null ? SamayojanModels.formatDate(a.clearedDate) : "-",
+                    SamayojanModels.AMT_FMT.format(a.drToday),
+                    SamayojanModels.AMT_FMT.format(a.crToday),
+                    c.finalStatus, c.finalReason, c.override
                 });
             }
         }

@@ -20,7 +20,6 @@ public class DashboardScreen extends JPanel {
         setLayout(new BorderLayout(14, 14));
         setOpaque(false);
 
-        // Top Row: Pastel FinTech Gradient Cards (Inspired by Mobile Banking Screenshot)
         JPanel kpiRow = new JPanel(new GridLayout(1, 5, 14, 0));
         kpiRow.setOpaque(false);
         kpiTotalLbl   = createPastelKpiCard(kpiRow, "TOTAL FARMERS",      "0", FlutterUI.PASTEL_GOLD,   FlutterUI.PASTEL_LILAC, "ALL",           "ALL");

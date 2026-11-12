@@ -39,14 +39,17 @@ public class EligibilityEngine {
             BalanceSnapshot snapFirst = acc.history.get(firstDate);
             BalanceSnapshot snapLast = acc.history.get(lastDate);
 
-            double balApr1 = snapFirst != null ? ("SB".equals(acc.category) ? snapFirst.cr : snapFirst.dr) : 0.0;
-            double balToday = snapLast != null ? ("SB".equals(acc.category) ? snapLast.cr : snapLast.dr) : 0.0;
+            double drApr1 = snapFirst != null ? snapFirst.dr : 0.0;
+            double crApr1 = snapFirst != null ? snapFirst.cr : 0.0;
+            double drToday = snapLast != null ? snapLast.dr : 0.0;
+            double crToday = snapLast != null ? snapLast.cr : 0.0;
 
             String clearedDate = null;
             String paltiDate = null;
-            double prevDr = balApr1;
+            double prevDr = drApr1;
 
-            if (!"SB".equals(acc.category) && existedOnApr1 && balApr1 > SamayojanModels.MARGIN_RS) {
+            // Filter strictly on DR balance: if DR > 10 on 01/04/2026, check if DR ever dropped <= 10 (or moved to CR)
+            if (!"SB".equals(acc.category) && existedOnApr1 && drApr1 > SamayojanModels.MARGIN_RS) {
                 for (int i = 1; i < sortedDates.size(); i++) {
                     String dKey = sortedDates.get(i);
                     BalanceSnapshot snap = acc.history.get(dKey);
@@ -68,7 +71,7 @@ public class EligibilityEngine {
 
             EnrichedAccount ea = new EnrichedAccount(
                 acc.account, acc.cif, acc.category, existedOnApr1,
-                firstSeenDate, balApr1, balToday, clearedDate, paltiDate
+                firstSeenDate, drApr1, crApr1, drToday, crToday, clearedDate, paltiDate
             );
 
             if ("SB".equals(acc.category)) group.sb.add(ea);
@@ -84,35 +87,44 @@ public class EligibilityEngine {
             List<String> checkList = new ArrayList<>();
             List<String> clearedLateList = new ArrayList<>();
             List<String> newAfterApr1List = new ArrayList<>();
+            List<String> crBalanceNotes = new ArrayList<>();
             boolean clearedBeforeApr1 = false;
 
             for (EnrichedAccount dmr : group.allDmr) {
+                // Note if DMR account is currently in Credit (CR) balance
+                if (dmr.crToday > 0 && dmr.drToday == 0) {
+                    crBalanceNotes.add(dmr.category + " (" + dmr.account + ") has Credit Balance (" +
+                        SamayojanModels.AMT_FMT.format(dmr.crToday) + " CR) - No DR Dues");
+                }
+
                 if (!dmr.existedOnApr1) {
-                    if (dmr.balToday > SamayojanModels.MARGIN_RS) {
+                    if (dmr.drToday > SamayojanModels.MARGIN_RS) {
                         newAfterApr1List.add(dmr.category + " (" + dmr.account + ") opened after 01/04 [1st Seen: " +
-                            SamayojanModels.formatDate(dmr.firstSeenDate) + ", Today: Rs." + SamayojanModels.AMT_FMT.format(dmr.balToday) + "]");
+                            SamayojanModels.formatDate(dmr.firstSeenDate) + ", Today: " + SamayojanModels.AMT_FMT.format(dmr.drToday) + " DR]");
                     }
                     continue;
                 }
 
-                if (dmr.balApr1 <= SamayojanModels.MARGIN_RS) {
-                    if (dmr.balApr1 > 0 || dmr.balToday > 0) clearedBeforeApr1 = true;
+                // Filter strictly on DR balance (dr <= 10.0 is cleared; CR balance has dr == 0.0 so automatically <= 10.0)
+                if (dmr.drApr1 <= SamayojanModels.MARGIN_RS) {
+                    if (dmr.drApr1 > 0 || dmr.drToday > 0 || dmr.crToday > 0) clearedBeforeApr1 = true;
                 } else {
-                    if (dmr.balToday <= SamayojanModels.MARGIN_RS) {
+                    if (dmr.drToday <= SamayojanModels.MARGIN_RS) {
                         String cDate = dmr.clearedDate != null ? SamayojanModels.formatDate(dmr.clearedDate) : SamayojanModels.formatDate(lastDate);
+                        String todayDisp = SamayojanModels.formatDrCr(dmr.drToday, dmr.crToday, false);
                         clearedLateList.add(dmr.category + " (" + dmr.account + ") cleared on " + cDate +
-                            " [01/04: Rs." + SamayojanModels.AMT_FMT.format(dmr.balApr1) + " -> Today: Rs." + SamayojanModels.AMT_FMT.format(dmr.balToday) + "]");
+                            " [01/04: " + SamayojanModels.AMT_FMT.format(dmr.drApr1) + " DR -> Today: " + todayDisp + "]");
                     } else if (dmr.clearedDate != null) {
                         clearedLateList.add(dmr.category + " (" + dmr.account + ") cleared on " +
-                            SamayojanModels.formatDate(dmr.clearedDate) + " & re-availed fresh loan [Today: Rs." + SamayojanModels.AMT_FMT.format(dmr.balToday) + "]");
+                            SamayojanModels.formatDate(dmr.clearedDate) + " & re-availed fresh loan [Today: " + SamayojanModels.AMT_FMT.format(dmr.drToday) + " DR]");
                     } else if (dmr.paltiDate != null || sortedDates.size() <= 2) {
                         String note = dmr.paltiDate != null
                             ? ("Balance shifted on " + SamayojanModels.formatDate(dmr.paltiDate) + " - Verify Same-Day Palti")
-                            : ("01/04: Rs." + SamayojanModels.AMT_FMT.format(dmr.balApr1) + " & Today: Rs." + SamayojanModels.AMT_FMT.format(dmr.balToday));
+                            : ("01/04: " + SamayojanModels.AMT_FMT.format(dmr.drApr1) + " DR & Today: " + SamayojanModels.AMT_FMT.format(dmr.drToday) + " DR");
                         checkList.add(dmr.category + " A/c " + dmr.account + " (" + note + ")");
                     } else {
-                        unpaidList.add(dmr.category + " A/c " + dmr.account + " (01/04: Rs." +
-                            SamayojanModels.AMT_FMT.format(dmr.balApr1) + ", Today: Rs." + SamayojanModels.AMT_FMT.format(dmr.balToday) + ")");
+                        unpaidList.add(dmr.category + " A/c " + dmr.account + " (01/04: " +
+                            SamayojanModels.AMT_FMT.format(dmr.drApr1) + " DR, Today: " + SamayojanModels.AMT_FMT.format(dmr.drToday) + " DR)");
                     }
                 }
             }
@@ -129,12 +141,15 @@ public class EligibilityEngine {
             } else if (!newAfterApr1List.isEmpty()) {
                 group.autoStatus = "ELIGIBLE";
                 group.autoReason = "Condition 1 (New Loan After 01/04/2026): " + String.join("; ", newAfterApr1List);
+            } else if (!crBalanceNotes.isEmpty()) {
+                group.autoStatus = "ELIGIBLE";
+                group.autoReason = "Credit (CR) Balance in DMR: " + String.join("; ", crBalanceNotes);
             } else if (clearedBeforeApr1) {
                 group.autoStatus = "ELIGIBLE";
-                group.autoReason = "Condition 1: Pre-01/04/2026 loan cleared (<= Rs. 10) on or before 01/04/2026.";
+                group.autoReason = "Condition 1: Pre-01/04/2026 DR balance within Rs. 10 margin on 01/04/2026.";
             } else {
                 group.autoStatus = "ELIGIBLE";
-                group.autoReason = "Condition 3: No pending DMR loan / Balance <= Rs. 10 on 01/04/2026 and Today.";
+                group.autoReason = "Condition 3: No pending DMR DR loan / Balance <= Rs. 10.";
             }
 
             String ov = db.manualOverrides.getOrDefault(group.cif, "Auto");

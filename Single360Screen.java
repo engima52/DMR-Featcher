@@ -16,31 +16,38 @@ public class Single360Screen extends JPanel {
 
     public Single360Screen(final AppContext ctx) {
         this.ctx = ctx;
-        setLayout(new BorderLayout(12, 12));
+        setLayout(new BorderLayout(14, 14));
         setOpaque(false);
 
-        FlutterUI.RoundedCard searchCard = new FlutterUI.RoundedCard(Color.WHITE);
+        FlutterUI.PastelGradientCard searchCard = new FlutterUI.PastelGradientCard(
+            FlutterUI.PASTEL_SKY_1, FlutterUI.PASTEL_MINT_1, "360"
+        );
         searchCard.setLayout(new BorderLayout(12, 0));
-        searchCard.setBorder(new EmptyBorder(12, 16, 12, 16));
+        searchCard.setBorder(new EmptyBorder(14, 18, 14, 58));
 
         JLabel sLbl = new JLabel("ENTER SAVING (SB) A/C, CIF, OR LOAN A/C:");
         sLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        sLbl.setForeground(FlutterUI.BLUE_600);
+        sLbl.setForeground(FlutterUI.SLATE_900);
         searchCard.add(sLbl, BorderLayout.WEST);
 
         singleSearchField = new JTextField();
         singleSearchField.setFont(new Font("Consolas", Font.BOLD, 16));
+        singleSearchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(FlutterUI.SLATE_200, 1, true),
+            new EmptyBorder(6, 10, 6, 10)
+        ));
         singleSearchField.addActionListener(e -> searchSingle());
         searchCard.add(singleSearchField, BorderLayout.CENTER);
 
         JPanel rightBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         rightBtns.setOpaque(false);
-        singleHideZeroChk = new JCheckBox("Active DMRs Only (> Rs. 0)", false);
+        singleHideZeroChk = new JCheckBox("Hide Exact 0.00 DMRs", false);
         singleHideZeroChk.setOpaque(false);
+        singleHideZeroChk.setFont(new Font("Segoe UI", Font.BOLD, 11));
         singleHideZeroChk.addActionListener(e -> { if (currentSingleCif != null) renderFarmer(currentSingleCif.cif); });
         rightBtns.add(singleHideZeroChk);
 
-        FlutterUI.FlutterButton fetchBtn = new FlutterUI.FlutterButton("Fetch Farmer 360°", FlutterUI.BLUE_600, Color.WHITE);
+        FlutterUI.FlutterButton fetchBtn = new FlutterUI.FlutterButton("Fetch Farmer 360°", FlutterUI.SLATE_900, Color.WHITE);
         fetchBtn.addActionListener(e -> searchSingle());
         rightBtns.add(fetchBtn);
 
@@ -58,14 +65,15 @@ public class Single360Screen extends JPanel {
         split.setOpaque(false);
 
         FlutterUI.RoundedCard leftCardsWrap = new FlutterUI.RoundedCard(Color.WHITE);
-        leftCardsWrap.setLayout(new BorderLayout(8, 8));
-        leftCardsWrap.setBorder(new EmptyBorder(14, 16, 14, 16));
+        leftCardsWrap.setLayout(new BorderLayout(8, 10));
+        leftCardsWrap.setBorder(new EmptyBorder(16, 18, 16, 18));
 
         JPanel banner = new JPanel(new BorderLayout(8, 4));
         banner.setBackground(FlutterUI.SLATE_50);
-        banner.setBorder(new EmptyBorder(8, 10, 8, 10));
+        banner.setBorder(new EmptyBorder(10, 12, 10, 12));
         singleFarmerTitleLbl = new JLabel("Select a farmer or enter an SB Account above.");
         singleFarmerTitleLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        singleFarmerTitleLbl.setForeground(FlutterUI.SLATE_900);
         singleStatusBadgeLbl = new JLabel("");
         singleStatusBadgeLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
         banner.add(singleFarmerTitleLbl, BorderLayout.CENTER);
@@ -77,22 +85,28 @@ public class Single360Screen extends JPanel {
         singleDmrCardsPanel.setBackground(Color.WHITE);
         JScrollPane leftScroll = new JScrollPane(singleDmrCardsPanel);
         leftScroll.setBorder(null);
+        leftScroll.getViewport().setBackground(Color.WHITE);
         leftScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         leftCardsWrap.add(leftScroll, BorderLayout.CENTER);
         split.setLeftComponent(leftCardsWrap);
 
         FlutterUI.RoundedCard rightTimelineCard = new FlutterUI.RoundedCard(Color.WHITE);
-        rightTimelineCard.setLayout(new BorderLayout(8, 8));
-        rightTimelineCard.setBorder(new EmptyBorder(14, 16, 14, 16));
+        rightTimelineCard.setLayout(new BorderLayout(8, 10));
+        rightTimelineCard.setBorder(new EmptyBorder(16, 18, 16, 18));
         JLabel tlHdr = new JLabel("COMPLETE MULTI-DATE BALANCE TIMELINE (01/04/2026 -> TODAY)");
         tlHdr.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tlHdr.setForeground(FlutterUI.SLATE_900);
         rightTimelineCard.add(tlHdr, BorderLayout.NORTH);
 
-        String[] tlCols = {"Report Date", "Category", "Account Number", "DR Balance (Loan)", "CR Balance (SB)", "Margin Note"};
+        String[] tlCols = {"Report Date", "Category", "Account Number", "DR Balance", "CR Balance", "Eligibility / Margin Note"};
         timelineTableModel = new DefaultTableModel(tlCols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        rightTimelineCard.add(new JScrollPane(FlutterUI.createStyledTable(timelineTableModel, -1)), BorderLayout.CENTER);
+        JTable tlTable = FlutterUI.createStyledTable(timelineTableModel, -1);
+        JScrollPane tlScroll = new JScrollPane(tlTable);
+        tlScroll.setBorder(BorderFactory.createEmptyBorder());
+        tlScroll.getViewport().setBackground(Color.WHITE);
+        rightTimelineCard.add(tlScroll, BorderLayout.CENTER);
         split.setRightComponent(rightTimelineCard);
         add(split, BorderLayout.CENTER);
 
@@ -115,9 +129,9 @@ public class Single360Screen extends JPanel {
         singleFarmerTitleLbl.setText(cm.name + "  |  CIF: " + cm.cif);
         singleStatusBadgeLbl.setText("  " + cm.finalStatus + "  ");
         singleStatusBadgeLbl.setOpaque(true);
-        if ("ELIGIBLE".equals(cm.finalStatus)) { singleStatusBadgeLbl.setBackground(FlutterUI.EMERALD_100); singleStatusBadgeLbl.setForeground(FlutterUI.EMERALD_700); }
-        else if ("NOT ELIGIBLE".equals(cm.finalStatus)) { singleStatusBadgeLbl.setBackground(FlutterUI.ROSE_100); singleStatusBadgeLbl.setForeground(FlutterUI.ROSE_700); }
-        else { singleStatusBadgeLbl.setBackground(FlutterUI.AMBER_100); singleStatusBadgeLbl.setForeground(FlutterUI.AMBER_700); }
+        if ("ELIGIBLE".equals(cm.finalStatus)) { singleStatusBadgeLbl.setBackground(FlutterUI.PASTEL_MINT_1); singleStatusBadgeLbl.setForeground(FlutterUI.EMERALD_700); }
+        else if ("NOT ELIGIBLE".equals(cm.finalStatus)) { singleStatusBadgeLbl.setBackground(FlutterUI.PASTEL_ROSE_1); singleStatusBadgeLbl.setForeground(FlutterUI.ROSE_700); }
+        else { singleStatusBadgeLbl.setBackground(FlutterUI.PASTEL_AMBER); singleStatusBadgeLbl.setForeground(FlutterUI.AMBER_700); }
 
         ctx.populateDmrCards(singleDmrCardsPanel, cm, singleHideZeroChk.isSelected());
 
@@ -133,10 +147,24 @@ public class Single360Screen extends JPanel {
             for (String dKey : sortedDates) {
                 BalanceSnapshot snap = rawRec.history.get(dKey);
                 if (snap == null) {
-                    timelineTableModel.addRow(new Object[]{SamayojanModels.formatDate(dKey), ea.category, ea.account, "Absent (0.00)", "0.00", "Not in report"});
+                    timelineTableModel.addRow(new Object[]{SamayojanModels.formatDate(dKey), ea.category, ea.account, "Absent", "Absent", "Not in report"});
                 } else {
-                    String note = (!"SB".equals(ea.category) && snap.dr <= SamayojanModels.MARGIN_RS) ? "CLEARED (<= Rs. 10)" : "Active";
-                    timelineTableModel.addRow(new Object[]{SamayojanModels.formatDate(dKey), ea.category, ea.account, SamayojanModels.AMT_FMT.format(snap.dr), SamayojanModels.AMT_FMT.format(snap.cr), note});
+                    String note;
+                    if ("SB".equals(ea.category)) {
+                        note = "Savings Account";
+                    } else if (snap.cr > 0 && snap.dr == 0) {
+                        note = "ELIGIBLE (Credit Balance in DMR)";
+                    } else if (snap.dr <= SamayojanModels.MARGIN_RS) {
+                        note = "CLEARED (<= Rs. 10 DR Margin)";
+                    } else {
+                        note = "DR Dues Active (> Rs. 10)";
+                    }
+                    timelineTableModel.addRow(new Object[]{
+                        SamayojanModels.formatDate(dKey), ea.category, ea.account,
+                        SamayojanModels.AMT_FMT.format(snap.dr),
+                        SamayojanModels.AMT_FMT.format(snap.cr),
+                        note
+                    });
                 }
             }
         }
@@ -146,8 +174,10 @@ public class Single360Screen extends JPanel {
         if (currentSingleCif == null) return;
         StringBuilder sb = new StringBuilder();
         for (EnrichedAccount dmr : currentSingleCif.allDmr) {
-            if (singleHideZeroChk.isSelected() && dmr.balToday <= 0.0) continue;
-            sb.append(dmr.category).append("\t").append(dmr.account).append("\t").append(SamayojanModels.AMT_FMT.format(dmr.balToday)).append("\n");
+            if (singleHideZeroChk.isSelected() && dmr.drToday == 0.0 && dmr.crToday == 0.0) continue;
+            String balNum = (dmr.crToday > 0 && dmr.drToday == 0) ? SamayojanModels.AMT_FMT.format(dmr.crToday) : SamayojanModels.AMT_FMT.format(dmr.drToday);
+            String drCr = (dmr.crToday > 0 && dmr.drToday == 0) ? "CR" : (dmr.drToday > 0 ? "DR" : "-");
+            sb.append(dmr.category).append("\t").append(dmr.account).append("\t").append(balNum).append("\t").append(drCr).append("\n");
         }
         if (sb.length() > 0) ctx.copyToClipboard(sb.toString().trim(), "DMRs for " + currentSingleCif.name);
     }

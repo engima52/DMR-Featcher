@@ -9,7 +9,6 @@ import java.util.zip.GZIPOutputStream;
 
 public class ReportParser {
 
-    // Change "*" to your exact bank report prefix later (e.g. "GL7043")
     public static final String DEFAULT_FILE_FILTER = "*";
 
     public static Set<String> syncNewDatesFromFolder(Path rootDir, String filterPattern, LocalDatabase db) throws IOException {
@@ -24,7 +23,6 @@ public class ReportParser {
                 if (!folderDate.matches("^202[6-9]\\d{4}$") || folderDate.compareTo("20260401") < 0) {
                     continue;
                 }
-                // Skip dates already imported into LocalDatabase
                 if (db.loadedDates.contains(folderDate)) {
                     continue;
                 }
@@ -83,16 +81,20 @@ public class ReportParser {
                 String[] tokens = rest.split("\\s+");
                 StringBuilder nameBuilder = new StringBuilder();
                 List<Double> numCols = new ArrayList<>();
+                List<String> rawNumTokens = new ArrayList<>();
                 boolean hitNumbers = false;
 
                 for (String tok : tokens) {
-                    boolean isNum = tok.matches("^-?[\\d,]+\\.\\d{2}(DR|CR|-)?$") || tok.matches("^-?[\\d,]+$");
+                    boolean isNum = tok.matches("^-?[\\d,]+\\.\\d{2}(DR|CR|dr|cr|-)?$") || tok.matches("^-?[\\d,]+$");
                     if (!hitNumbers && !isNum) {
                         if (nameBuilder.length() > 0) nameBuilder.append(" ");
                         nameBuilder.append(tok);
                     } else {
                         hitNumbers = true;
-                        if (isNum) numCols.add(parseAmount(tok));
+                        if (isNum) {
+                            numCols.add(parseAmount(tok));
+                            rawNumTokens.add(tok.toUpperCase());
+                        }
                     }
                 }
 
@@ -100,6 +102,12 @@ public class ReportParser {
                 double drBal = numCols.size() > 0 ? numCols.get(0) : 0.0;
                 double crBal = numCols.size() > 1 ? numCols.get(1) : 0.0;
                 double odInt = numCols.size() > 4 ? numCols.get(4) : 0.0;
+
+                // If single balance column has explicit CR suffix (e.g. 450.00CR), assign to crBal
+                if (rawNumTokens.size() == 1 && rawNumTokens.get(0).endsWith("CR")) {
+                    crBal = drBal;
+                    drBal = 0.0;
+                }
 
                 String rowCat = detectCategory(trimmed, currentCategory);
                 if ("OTHER".equals(rowCat) && crBal > 0 && drBal == 0) {
@@ -144,7 +152,6 @@ public class ReportParser {
         }
     }
 
-    // Helper for Home Testing (Generates initial 3 dates, then 4th date on second click)
     public static int generateDemoFiles(Path demoRoot) throws IOException {
         Files.createDirectories(demoRoot);
         Path d1 = demoRoot.resolve("20260401");
@@ -159,12 +166,15 @@ public class ReportParser {
                 "2 000010000002 500010000002 KAMLESH PATEL 0.00 4200.00 0.00 4.00 0.00 0.00 0.00",
                 "3 000010000003 500010000003 SURESH YADAV 0.00 9100.00 0.00 4.00 0.00 0.00 0.00",
                 "4 000010000004 500010000004 DINESH KUSHWAHA 0.00 12000.00 0.00 4.00 0.00 0.00 0.00",
+                "5 000010000005 500010000005 HARISHANKAR TIWARI 0.00 14200.00 0.00 4.00 0.00 0.00 0.00",
                 "SCHEME: KHARIF KIND FERTILIZER",
-                "5 000010000001 710010000001 RAMESHWAR PRASAD 24000.00 0.00 0.00 7.00 0.00 0.00 0.00",
-                "6 000010000002 710010000002 KAMLESH PATEL 8.50 0.00 0.00 7.00 0.00 0.00 0.00",
-                "7 000010000003 710010000003 SURESH YADAV 31500.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "6 000010000001 710010000001 RAMESHWAR PRASAD 24000.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "7 000010000002 710010000002 KAMLESH PATEL 8.50 0.00 0.00 7.00 0.00 0.00 0.00",
+                "8 000010000003 710010000003 SURESH YADAV 31500.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                // Harishankar Tiwari has a CR balance of Rs. 450.00 in his Kharif Kind DMR account!
+                "9 000010000005 710010000005 HARISHANKAR TIWARI 0.00 450.00 0.00 7.00 0.00 0.00 0.00",
                 "SCHEME: RABI CASH CROP",
-                "8 000010000001 740010000001 RAMESHWAR PRASAD 6.00 0.00 0.00 7.00 0.00 0.00 0.00"
+                "10 000010000001 740010000001 RAMESHWAR PRASAD 6.00 0.00 0.00 7.00 0.00 0.00 0.00"
             ));
             writeGzipSample(d2.resolve("REPORT_ANY_NAME.gz"), Arrays.asList(
                 "SCHEME: SBCHQ SAVINGS ACCOUNT",
@@ -172,10 +182,12 @@ public class ReportParser {
                 "2 000010000002 500010000002 KAMLESH PATEL 0.00 4200.00 0.00 4.00 0.00 0.00 0.00",
                 "3 000010000003 500010000003 SURESH YADAV 0.00 9100.00 0.00 4.00 0.00 0.00 0.00",
                 "4 000010000004 500010000004 DINESH KUSHWAHA 0.00 12000.00 0.00 4.00 0.00 0.00 0.00",
+                "5 000010000005 500010000005 HARISHANKAR TIWARI 0.00 14200.00 0.00 4.00 0.00 0.00 0.00",
                 "SCHEME: KHARIF KIND FERTILIZER",
-                "5 000010000001 710010000001 RAMESHWAR PRASAD 5.00 0.00 0.00 7.00 0.00 0.00 0.00",
-                "6 000010000002 710010000002 KAMLESH PATEL 8.50 0.00 0.00 7.00 0.00 0.00 0.00",
-                "7 000010000003 710010000003 SURESH YADAV 31500.00 0.00 0.00 7.00 0.00 0.00 0.00"
+                "6 000010000001 710010000001 RAMESHWAR PRASAD 5.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "7 000010000002 710010000002 KAMLESH PATEL 8.50 0.00 0.00 7.00 0.00 0.00 0.00",
+                "8 000010000003 710010000003 SURESH YADAV 31500.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "9 000010000005 710010000005 HARISHANKAR TIWARI 0.00 450.00 0.00 7.00 0.00 0.00 0.00"
             ));
             writeGzipSample(d3.resolve("REPORT_ANY_NAME.gz"), Arrays.asList(
                 "SCHEME: SBCHQ SAVINGS ACCOUNT",
@@ -183,14 +195,16 @@ public class ReportParser {
                 "2 000010000002 500010000002 KAMLESH PATEL 0.00 6500.00 0.00 4.00 0.00 0.00 0.00",
                 "3 000010000003 500010000003 SURESH YADAV 0.00 3100.00 0.00 4.00 0.00 0.00 0.00",
                 "4 000010000004 500010000004 DINESH KUSHWAHA 0.00 15500.00 0.00 4.00 0.00 0.00 0.00",
+                "5 000010000005 500010000005 HARISHANKAR TIWARI 0.00 14200.00 0.00 4.00 0.00 0.00 0.00",
                 "SCHEME: KHARIF KIND FERTILIZER",
-                "5 000010000001 710010000001 RAMESHWAR PRASAD 28000.00 0.00 0.00 7.00 0.00 0.00 0.00",
-                "6 000010000002 710010000002 KAMLESH PATEL 19000.00 0.00 0.00 7.00 0.00 0.00 0.00",
-                "7 000010000003 710010000003 SURESH YADAV 31500.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "6 000010000001 710010000001 RAMESHWAR PRASAD 28000.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "7 000010000002 710010000002 KAMLESH PATEL 7.25 0.00 0.00 7.00 0.00 0.00 0.00",
+                "8 000010000003 710010000003 SURESH YADAV 31500.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "9 000010000005 710010000005 HARISHANKAR TIWARI 0.00 450.00 0.00 7.00 0.00 0.00 0.00",
                 "SCHEME: RABI KIND FERTILIZER",
-                "8 000010000004 730010000004 DINESH KUSHWAHA 16500.00 0.00 0.00 7.00 0.00 0.00 0.00"
+                "10 000010000004 730010000004 DINESH KUSHWAHA 16500.00 0.00 0.00 7.00 0.00 0.00 0.00"
             ));
-            return 1; // Created initial 3 folders
+            return 1;
         } else if (!Files.exists(d4)) {
             writeGzipSample(d4.resolve("REPORT_ANY_NAME.gz"), Arrays.asList(
                 "SCHEME: SBCHQ SAVINGS ACCOUNT",
@@ -198,16 +212,18 @@ public class ReportParser {
                 "2 000010000002 500010000002 KAMLESH PATEL 0.00 6500.00 0.00 4.00 0.00 0.00 0.00",
                 "3 000010000003 500010000003 SURESH YADAV 0.00 8100.00 0.00 4.00 0.00 0.00 0.00",
                 "4 000010000004 500010000004 DINESH KUSHWAHA 0.00 15500.00 0.00 4.00 0.00 0.00 0.00",
+                "5 000010000005 500010000005 HARISHANKAR TIWARI 0.00 14200.00 0.00 4.00 0.00 0.00 0.00",
                 "SCHEME: KHARIF KIND FERTILIZER",
-                "5 000010000001 710010000001 RAMESHWAR PRASAD 28000.00 0.00 0.00 7.00 0.00 0.00 0.00",
-                "6 000010000002 710010000002 KAMLESH PATEL 19000.00 0.00 0.00 7.00 0.00 0.00 0.00",
-                "7 000010000003 710010000003 SURESH YADAV 0.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "6 000010000001 710010000001 RAMESHWAR PRASAD 28000.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "7 000010000002 710010000002 KAMLESH PATEL 7.25 0.00 0.00 7.00 0.00 0.00 0.00",
+                "8 000010000003 710010000003 SURESH YADAV 0.00 0.00 0.00 7.00 0.00 0.00 0.00",
+                "9 000010000005 710010000005 HARISHANKAR TIWARI 0.00 450.00 0.00 7.00 0.00 0.00 0.00",
                 "SCHEME: RABI KIND FERTILIZER",
-                "8 000010000004 730010000004 DINESH KUSHWAHA 16500.00 0.00 0.00 7.00 0.00 0.00 0.00"
+                "10 000010000004 730010000004 DINESH KUSHWAHA 16500.00 0.00 0.00 7.00 0.00 0.00 0.00"
             ));
-            return 2; // Created 4th folder (20261110)
+            return 2;
         }
-        return 0; // All demo folders already exist
+        return 0;
     }
 
     private static void writeGzipSample(Path gzFile, List<String> lines) throws IOException {
