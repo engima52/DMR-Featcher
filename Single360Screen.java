@@ -6,12 +6,12 @@ import java.util.*;
 import java.util.List;
 
 public class Single360Screen extends JPanel {
-    private final AppContext ctx;
-    private final JTextField singleSearchField;
-    private final JCheckBox singleHideZeroChk;
-    private final JLabel singleFarmerTitleLbl, singleStatusBadgeLbl;
-    private final FlutterUI.ScrollableCardPanel singleDmrCardsPanel;
-    private final DefaultTableModel timelineTableModel;
+    private AppContext ctx;
+    private JTextField singleSearchField;
+    private JCheckBox singleHideZeroChk;
+    private JLabel singleFarmerTitleLbl, singleStatusBadgeLbl;
+    private FlutterUI.ScrollableCardPanel singleDmrCardsPanel;
+    private DefaultTableModel timelineTableModel;
     private CIFMasterRecord currentSingleCif = null;
 
     public Single360Screen(final AppContext ctx) {

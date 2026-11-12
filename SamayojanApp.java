@@ -8,15 +8,15 @@ import java.util.*;
 import java.util.List;
 
 public class SamayojanApp extends JFrame {
-    private final AppContext ctx;
+    private AppContext ctx;
     private final CardLayout screenCardLayout = new CardLayout();
     private final JPanel screenContainer = new JPanel(screenCardLayout);
     private final List<FlutterUI.NavRailButton> navButtons = new ArrayList<>();
     private final JLabel topSyncPill = new JLabel("Local DB: 0 Dates | Ready");
     private final JLabel footerStatusLbl = new JLabel("Ready. Standalone Local Database active.");
 
-    private final Single360Screen single360Screen;
-    private final SyncSettingsScreen syncSettingsScreen;
+    private Single360Screen single360Screen;
+    private SyncSettingsScreen syncSettingsScreen;
 
     public SamayojanApp() {
         setTitle("DCCB Harpalpur (00003) — Modular Multi-Screen Samayojan Studio");

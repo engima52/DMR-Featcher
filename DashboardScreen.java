@@ -7,7 +7,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class DashboardScreen extends JPanel {
-    private final AppContext ctx;
+    private AppContext ctx;
     private JLabel kpiTotalLbl, kpiEligLbl, kpiNotEligLbl, kpiCheckLbl, kpiDatesLbl;
     private JComboBox<String> sheetSelectorCombo;
     private JTextField dashSearchField;
@@ -17,23 +17,23 @@ public class DashboardScreen extends JPanel {
 
     public DashboardScreen(final AppContext ctx) {
         this.ctx = ctx;
-        setLayout(new BorderLayout(12, 12));
+        setLayout(new BorderLayout(14, 14));
         setOpaque(false);
 
-        JPanel kpiRow = new JPanel(new GridLayout(1, 5, 12, 0));
+        // Top Row: Pastel FinTech Gradient Cards (Inspired by Mobile Banking Screenshot)
+        JPanel kpiRow = new JPanel(new GridLayout(1, 5, 14, 0));
         kpiRow.setOpaque(false);
-        kpiTotalLbl   = createKpiCard(kpiRow, "TOTAL FARMERS (ALL)", "0", FlutterUI.SLATE_800,   "ALL");
-        kpiEligLbl    = createKpiCard(kpiRow, "ELIGIBLE FARMERS",    "0", FlutterUI.EMERALD_700, "ELIGIBLE");
-        kpiNotEligLbl = createKpiCard(kpiRow, "NOT ELIGIBLE",        "0", FlutterUI.ROSE_700,    "NOT ELIGIBLE");
-        kpiCheckLbl   = createKpiCard(kpiRow, "NEEDS TO CHECK",      "0", FlutterUI.AMBER_700,   "NEEDS TO CHECK");
-        kpiDatesLbl   = createKpiCard(kpiRow, "SYNCED DATES IN DB",  "0", FlutterUI.BLUE_600,    null);
+        kpiTotalLbl   = createPastelKpiCard(kpiRow, "TOTAL FARMERS",      "0", FlutterUI.PASTEL_GOLD,   FlutterUI.PASTEL_LILAC, "ALL",           "ALL");
+        kpiEligLbl    = createPastelKpiCard(kpiRow, "ELIGIBLE FARMERS",   "0", FlutterUI.PASTEL_MINT_1, FlutterUI.PASTEL_MINT_2,"OK",            "ELIGIBLE");
+        kpiNotEligLbl = createPastelKpiCard(kpiRow, "NOT ELIGIBLE",       "0", FlutterUI.PASTEL_ROSE_1, FlutterUI.PASTEL_ROSE_2,"!",             "NOT ELIGIBLE");
+        kpiCheckLbl   = createPastelKpiCard(kpiRow, "NEEDS TO CHECK",     "0", FlutterUI.PASTEL_AMBER,  FlutterUI.PASTEL_GOLD,  "?",             "NEEDS TO CHECK");
+        kpiDatesLbl   = createPastelKpiCard(kpiRow, "SYNCED DATES IN DB", "0", FlutterUI.PASTEL_SKY_1,  FlutterUI.PASTEL_SKY_2, "DB",            null);
         add(kpiRow, BorderLayout.NORTH);
 
         FlutterUI.RoundedCard tableCard = new FlutterUI.RoundedCard(Color.WHITE);
-        tableCard.setLayout(new BorderLayout(8, 10));
-        tableCard.setBorder(new EmptyBorder(14, 16, 14, 16));
+        tableCard.setLayout(new BorderLayout(10, 12));
+        tableCard.setBorder(new EmptyBorder(16, 18, 16, 18));
 
-        // Initialize Table Model and Table first
         String[] cols = {
             "SL", "12-Digit CIF", "Farmer Name", "SB Account (Today)",
             "Kharif Kind", "Kharif Cash", "Rabi Kind", "Rabi Cash",
@@ -49,7 +49,9 @@ public class DashboardScreen extends JPanel {
 
         JPanel leftFlt = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftFlt.setOpaque(false);
-        leftFlt.add(new JLabel("Sheet View:"));
+        JLabel viewLbl = new JLabel("Portfolio View:");
+        viewLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        leftFlt.add(viewLbl);
 
         sheetSelectorCombo = new JComboBox<>(new String[]{
             "1. ALL (Master CIF View)", "2. SB (Savings Accounts)",
@@ -65,7 +67,7 @@ public class DashboardScreen extends JPanel {
         dashSearchField = new JTextField();
         dashSearchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         dashSearchField.addActionListener(e -> refreshTable());
-        searchPanel.add(new JLabel("Quick Filter (CIF / Account / Name): "), BorderLayout.WEST);
+        searchPanel.add(new JLabel("Search Farmer / CIF / A/c: "), BorderLayout.WEST);
         searchPanel.add(dashSearchField, BorderLayout.CENTER);
 
         JPanel searchBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
@@ -74,7 +76,7 @@ public class DashboardScreen extends JPanel {
         findBtn.addActionListener(e -> refreshTable());
         searchBtns.add(findBtn);
 
-        FlutterUI.FlutterButton inspectBtn = new FlutterUI.FlutterButton("Inspect Selected in 360°", FlutterUI.BLUE_600, Color.WHITE);
+        FlutterUI.FlutterButton inspectBtn = new FlutterUI.FlutterButton("Inspect 360°", FlutterUI.INDIGO_600, Color.WHITE);
         inspectBtn.addActionListener(e -> {
             int row = masterTable.getSelectedRow();
             if (row >= 0) ctx.openIn360Screen(String.valueOf(masterTable.getValueAt(row, 1)));
@@ -117,24 +119,31 @@ public class DashboardScreen extends JPanel {
             }
         });
 
-        tableCard.add(new JScrollPane(masterTable), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(masterTable);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(Color.WHITE);
+        tableCard.add(scroll, BorderLayout.CENTER);
         add(tableCard, BorderLayout.CENTER);
 
         ctx.addRefreshListener(this::updateKpisAndTable);
     }
 
-    private JLabel createKpiCard(JPanel parent, String title, String value, Color accent, final String filterKey) {
-        FlutterUI.RoundedCard card = new FlutterUI.RoundedCard(Color.WHITE);
-        card.setLayout(new BorderLayout(4, 4));
-        card.setBorder(new EmptyBorder(12, 16, 12, 16));
+    private JLabel createPastelKpiCard(JPanel parent, String title, String value, Color c1, Color c2, String badge, final String filterKey) {
+        FlutterUI.PastelGradientCard card = new FlutterUI.PastelGradientCard(c1, c2, badge);
+        card.setLayout(new BorderLayout(4, 6));
+        card.setBorder(new EmptyBorder(16, 18, 16, 18));
+
         JLabel tLbl = new JLabel(title);
         tLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        tLbl.setForeground(FlutterUI.SLATE_500);
+        tLbl.setForeground(FlutterUI.SLATE_700);
+
         JLabel vLbl = new JLabel(value);
-        vLbl.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        vLbl.setForeground(accent);
+        vLbl.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        vLbl.setForeground(FlutterUI.SLATE_900);
+
         card.add(tLbl, BorderLayout.NORTH);
         card.add(vLbl, BorderLayout.CENTER);
+
         if (filterKey != null) {
             card.setCursor(new Cursor(Cursor.HAND_CURSOR));
             card.addMouseListener(new MouseAdapter() {

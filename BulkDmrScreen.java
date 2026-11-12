@@ -8,14 +8,14 @@ import java.util.*;
 import java.util.List;
 
 public class BulkDmrScreen extends JPanel {
-    private final AppContext ctx;
-    private final JTextArea bulkSbPasteArea;
-    private final JLabel bulkStatsBadge;
-    private final JCheckBox bulkOnlyActiveChk, bulkFlatModeChk;
-    private final JTable bulkTable;
-    private final DefaultTableModel bulkTableModel;
-    private final FlutterUI.ScrollableCardPanel bulkQuickCardsPanel;
-    private final JLabel bulkSelectedFarmerLbl;
+    private AppContext ctx;
+    private JTextArea bulkSbPasteArea;
+    private JLabel bulkStatsBadge;
+    private JCheckBox bulkOnlyActiveChk, bulkFlatModeChk;
+    private JTable bulkTable;
+    private DefaultTableModel bulkTableModel;
+    private FlutterUI.ScrollableCardPanel bulkQuickCardsPanel;
+    private JLabel bulkSelectedFarmerLbl;
 
     private final List<CIFMasterRecord> bulkMatchedCifs = new ArrayList<>();
     private final List<BulkDmrRow> bulkFlatRows = new ArrayList<>();

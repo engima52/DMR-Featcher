@@ -4,9 +4,9 @@ import java.awt.*;
 import java.nio.file.*;
 
 public class SyncSettingsScreen extends JPanel {
-    private final AppContext ctx;
-    private final JTextField pathField, fileFilterField;
-    private final JTextArea syncLogArea;
+    private AppContext ctx;
+    private JTextField pathField, fileFilterField;
+    private JTextArea syncLogArea;
 
     public SyncSettingsScreen(final AppContext ctx) {
         this.ctx = ctx;

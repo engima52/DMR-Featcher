@@ -66,9 +66,13 @@ public class AppContext {
 
     public void populateDmrCards(JPanel container, final CIFMasterRecord cm, boolean hideZero) {
         container.removeAll();
-        FlutterUI.RoundedCard reasonBox = new FlutterUI.RoundedCard(new Color(255, 251, 235));
-        reasonBox.setLayout(new BorderLayout(8, 4));
-        reasonBox.setBorder(new EmptyBorder(8, 10, 8, 10));
+
+        // Pastel Gold/Lavender Hero Summary Banner (Matches Top Card in FinTech Screenshot)
+        FlutterUI.PastelGradientCard reasonBox = new FlutterUI.PastelGradientCard(
+            FlutterUI.PASTEL_GOLD, FlutterUI.PASTEL_LILAC, "CIF"
+        );
+        reasonBox.setLayout(new BorderLayout(8, 6));
+        reasonBox.setBorder(new EmptyBorder(14, 16, 14, 16));
 
         JTextArea rArea = new JTextArea("Audit Remark: " + cm.finalReason);
         rArea.setEditable(false);
@@ -79,69 +83,84 @@ public class AppContext {
         rArea.setForeground(FlutterUI.SLATE_900);
         reasonBox.add(rArea, BorderLayout.CENTER);
 
-        FlutterUI.FlutterButton copyCifBtn = new FlutterUI.FlutterButton("Copy CIF", FlutterUI.SLATE_700, Color.WHITE);
+        FlutterUI.FlutterButton copyCifBtn = new FlutterUI.FlutterButton("Copy CIF", FlutterUI.SLATE_900, Color.WHITE);
         copyCifBtn.addActionListener(e -> copyToClipboard(cm.cif, "CIF " + cm.cif));
         JPanel cifWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         cifWrap.setOpaque(false);
         cifWrap.add(copyCifBtn);
-        reasonBox.add(cifWrap, BorderLayout.EAST);
+        reasonBox.add(cifWrap, BorderLayout.SOUTH);
 
         container.add(reasonBox);
-        container.add(Box.createVerticalStrut(8));
+        container.add(Box.createVerticalStrut(10));
 
         for (EnrichedAccount sbAcc : cm.sb) {
             container.add(buildSingleAccountCard("SAVINGS (SBCHQ)", sbAcc, true));
-            container.add(Box.createVerticalStrut(6));
+            container.add(Box.createVerticalStrut(8));
         }
         for (EnrichedAccount dmr : cm.allDmr) {
             if (hideZero && dmr.balToday <= 0.0) continue;
             container.add(buildSingleAccountCard(dmr.category, dmr, false));
-            container.add(Box.createVerticalStrut(6));
+            container.add(Box.createVerticalStrut(8));
         }
         container.revalidate();
         container.repaint();
     }
 
+    // Styled like the "Transactions" List Rows in the Mobile Banking Screenshot
     private JPanel buildSingleAccountCard(final String catTitle, final EnrichedAccount acc, boolean isSb) {
-        FlutterUI.RoundedCard card = new FlutterUI.RoundedCard(isSb ? new Color(240, 249, 255) : FlutterUI.SLATE_50);
-        card.setLayout(new BorderLayout(6, 6));
-        card.setBorder(new EmptyBorder(10, 12, 10, 12));
+        Color cardBg = isSb ? FlutterUI.PASTEL_SKY_1 : (acc.balToday > SamayojanModels.MARGIN_RS ? FlutterUI.PASTEL_ROSE_1 : FlutterUI.PASTEL_MINT_1);
+        FlutterUI.RoundedCard card = new FlutterUI.RoundedCard(cardBg);
+        card.setLayout(new BorderLayout(12, 6));
+        card.setBorder(new EmptyBorder(12, 14, 12, 14));
 
-        JPanel topRow = new JPanel(new BorderLayout(6, 0));
-        topRow.setOpaque(false);
-        JLabel leftTitle = new JLabel(catTitle + " :  " + acc.account);
+        // Left: Circular Scheme Avatar Badge
+        String badgeCode = isSb ? "SB" : (catTitle.contains("KHARIF KIND") ? "KK" : (catTitle.contains("KHARIF CASH") ? "KC" : (catTitle.contains("RABI KIND") ? "RK" : "RC")));
+        Color avatarBg = isSb ? FlutterUI.BLUE_600 : (acc.balToday > SamayojanModels.MARGIN_RS ? FlutterUI.ROSE_700 : FlutterUI.EMERALD_700);
+        FlutterUI.CircleAvatar avatar = new FlutterUI.CircleAvatar(badgeCode, avatarBg, Color.WHITE);
+        JPanel avatarWrap = new JPanel(new GridBagLayout());
+        avatarWrap.setOpaque(false);
+        avatarWrap.add(avatar);
+        card.add(avatarWrap, BorderLayout.WEST);
+
+        // Center: Account Number + Subtitle History
+        JPanel midPanel = new JPanel(new GridLayout(2, 1, 0, 2));
+        midPanel.setOpaque(false);
+        JLabel leftTitle = new JLabel(catTitle + "  •  " + acc.account);
         leftTitle.setFont(new Font("Consolas", Font.BOLD, 14));
         leftTitle.setForeground(FlutterUI.SLATE_900);
-        topRow.add(leftTitle, BorderLayout.WEST);
 
-        JLabel balLbl = new JLabel("Today: Rs. " + SamayojanModels.AMT_FMT.format(acc.balToday));
-        balLbl.setFont(new Font("Consolas", Font.BOLD, 14));
-        balLbl.setForeground((!isSb && acc.balToday > SamayojanModels.MARGIN_RS) ? FlutterUI.ROSE_700 : FlutterUI.EMERALD_700);
-        topRow.add(balLbl, BorderLayout.EAST);
-        card.add(topRow, BorderLayout.NORTH);
-
-        JPanel botRow = new JPanel(new BorderLayout(6, 0));
-        botRow.setOpaque(false);
         String aprInfo = acc.existedOnApr1
-            ? ("01/04 Bal: Rs." + SamayojanModels.AMT_FMT.format(acc.balApr1))
+            ? ("01/04: Rs." + SamayojanModels.AMT_FMT.format(acc.balApr1))
             : ("New (" + SamayojanModels.formatDate(acc.firstSeenDate) + ")");
-        String clrInfo = acc.clearedDate != null ? (" | Cleared: " + SamayojanModels.formatDate(acc.clearedDate)) : "";
+        String clrInfo = acc.clearedDate != null ? ("  |  Cleared: " + SamayojanModels.formatDate(acc.clearedDate)) : "";
         JLabel histLbl = new JLabel(aprInfo + clrInfo);
         histLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         histLbl.setForeground(FlutterUI.SLATE_700);
-        botRow.add(histLbl, BorderLayout.WEST);
+
+        midPanel.add(leftTitle);
+        midPanel.add(histLbl);
+        card.add(midPanel, BorderLayout.CENTER);
+
+        // Right: Balance + Pill Copy Buttons
+        JPanel rightPanel = new JPanel(new BorderLayout(0, 4));
+        rightPanel.setOpaque(false);
+
+        JLabel balLbl = new JLabel("Rs. " + SamayojanModels.AMT_FMT.format(acc.balToday), SwingConstants.RIGHT);
+        balLbl.setFont(new Font("Consolas", Font.BOLD, 15));
+        balLbl.setForeground((!isSb && acc.balToday > SamayojanModels.MARGIN_RS) ? FlutterUI.ROSE_700 : FlutterUI.EMERALD_700);
+        rightPanel.add(balLbl, BorderLayout.NORTH);
 
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         btns.setOpaque(false);
-        FlutterUI.FlutterButton cpAcc = new FlutterUI.FlutterButton("Copy A/c: " + acc.account, FlutterUI.SLATE_800, Color.WHITE);
+        FlutterUI.FlutterButton cpAcc = new FlutterUI.FlutterButton("Copy A/c", FlutterUI.SLATE_900, Color.WHITE);
         cpAcc.addActionListener(e -> copyToClipboard(acc.account, catTitle + " A/c"));
-        FlutterUI.FlutterButton cpBal = new FlutterUI.FlutterButton("Copy Bal", FlutterUI.BLUE_600, Color.WHITE);
+        FlutterUI.FlutterButton cpBal = new FlutterUI.FlutterButton("Copy Bal", FlutterUI.INDIGO_600, Color.WHITE);
         cpBal.addActionListener(e -> copyToClipboard(SamayojanModels.AMT_FMT.format(acc.balToday), "Balance"));
         btns.add(cpAcc);
         btns.add(cpBal);
-        botRow.add(btns, BorderLayout.EAST);
+        rightPanel.add(btns, BorderLayout.SOUTH);
 
-        card.add(botRow, BorderLayout.SOUTH);
+        card.add(rightPanel, BorderLayout.EAST);
         return card;
     }
 
